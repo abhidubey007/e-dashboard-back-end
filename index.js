@@ -4,6 +4,10 @@ require('./db/config');
 
 const User = require('./db/User');
 const Product = require('./db/Product')
+
+const Jwt = require("jsonwebtoken")
+const jwtKey = "e-comm"
+
 const app = express();
 
 app.use(express.json())
@@ -14,17 +18,29 @@ app.post("/register", async (req, resp) => {
     let result = await user.save();
     result = result.toObject();
     delete result.password;
-    resp.send(result)
+    Jwt.sign({ result }, jwtKey, { expiresIn: "2h" }, (err, token) => {
+        if (err) {
+            resp.send("Something went wrong")
+        }
+        resp.send({ result, auth: token })
+    })
 })
 
 app.post("/login", async (req, resp) => {
     if (req.body.password && req.body.email) {
         const user = await User.findOne(req.body).select("-password")
         if (user) {
-            resp.send(user)
+            Jwt.sign({ user }, jwtKey, { expiresIn: "2h" }, (err, token) => {
+                if (err) {
+                    resp.send("Something went wrong")
+                }
+                resp.send({ user, auth: token })
+            })
         } else {
             resp.send({ result: "No User Found" })
         }
+    } else {
+        resp.send({ result: "No User found" })
     }
 
 })
